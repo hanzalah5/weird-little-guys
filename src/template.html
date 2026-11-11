@@ -1,0 +1,431 @@
+<title>Weird Little Guys</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Draw a weird little guy. It comes alive. Race your friends.">
+<meta name="theme-color" content="#8ED2FF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght,BNCE,INFM@0,300..800,-100..100,0..100;1,300..800,-100..100,0..100&display=swap">
+<style>
+/* Layout: a living, full-bleed canvas world (the yard / the racetrack); paper "sticker" panels
+   with wobbly ink outlines and hard offset shadows float above it. One visual world, one theme:
+   colors are set explicitly; the sky inside the world follows the viewer's real clock instead. */
+:root{
+  --ink:#1E1B36;
+  --ink-soft:#575380;
+  --paper:#FFFFFF;
+  --paper-tint:#F3F6FF;
+  --grid:#DCE4FB;
+  --sky:#8ED2FF;
+  --mint:#5EE0A8;
+  --tangerine:#FF9A3C;
+  --bubblegum:#FF6FAE;
+  --lemon:#FFDD4A;
+  --blue:#5EB6FF;
+  --lilac:#AE95FF;
+  --tomato:#FF5B4F;
+  --scrim:rgba(30,27,54,.38);
+  --font-hand:"Shantell Sans","Comic Sans MS","Chalkboard SE","Marker Felt",ui-rounded,system-ui,sans-serif;
+  --wob-a:18px 13px 20px 12px / 12px 20px 14px 18px;
+  --wob-b:13px 19px 12px 21px / 19px 12px 20px 14px;
+  --fs-xs:.78rem; --fs-s:.9rem; --fs-m:1.05rem; --fs-l:1.4rem; --fs-xl:2rem;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--sky);color:var(--ink);font-family:var(--font-hand);font-variation-settings:"INFM" 30,"BNCE" 0;
+  overflow:hidden;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;text-size-adjust:100%}
+button,input,textarea{font:inherit;color:inherit}
+button{touch-action:manipulation}
+#app{position:fixed;inset:0;overflow:hidden}
+#world{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#world.dragging{cursor:grabbing}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;font-weight:700;font-size:var(--fs-m);line-height:1.1;
+  background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:var(--wob-a);padding:.72em 1.1em;
+  box-shadow:3px 4px 0 var(--ink);cursor:pointer;transition:transform .08s ease,box-shadow .08s ease,background-color .15s;
+  white-space:nowrap;min-height:44px;font-variation-settings:"INFM" 40,"BNCE" 20}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 5px 0 var(--ink)}
+.btn:active{transform:translate(2px,3px);box-shadow:1px 1px 0 var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:3px 4px 0 var(--ink)}
+.btn:focus-visible,.iconbtn:focus-visible,.tool:focus-visible,.seg button:focus-visible,.swatch:focus-visible,.pick:focus-visible,.mode:focus-visible{outline:3px dashed var(--bubblegum);outline-offset:3px}
+.btn.primary{background:var(--lemon)}
+.btn.hot{background:var(--bubblegum)}
+.btn.go{background:var(--mint)}
+.btn.blue{background:var(--blue)}
+.btn[aria-pressed="true"]{background:var(--lilac)}
+.btn.ghost{background:transparent;box-shadow:none;border-style:dashed}
+.btn.big{font-size:1.2rem;padding:.85em 1.4em;width:100%}
+.btn.small{font-size:var(--fs-s);padding:.55em .8em;min-height:40px;box-shadow:2px 3px 0 var(--ink)}
+.btn svg,.tool svg,.iconbtn svg{width:1.25em;height:1.25em;flex:none}
+.iconbtn{display:inline-grid;place-items:center;width:44px;height:44px;border:2.5px solid var(--ink);border-radius:var(--wob-b);
+  background:var(--paper);box-shadow:2px 3px 0 var(--ink);cursor:pointer;padding:0;flex:none;transition:transform .08s,box-shadow .08s}
+.iconbtn:active{transform:translate(2px,2px);box-shadow:0 1px 0 var(--ink)}
+.iconbtn svg{width:22px;height:22px}
+
+/* ---------- generic overlays ---------- */
+.screen{position:absolute;inset:0;z-index:20}
+.modal{display:flex;flex-direction:column;align-items:center;gap:14px;background:var(--scrim);overflow-y:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-bottom,0px))}
+.panel{position:relative;width:min(100%,460px);background:var(--paper);border:3px solid var(--ink);border-radius:var(--wob-a);
+  box-shadow:6px 7px 0 var(--ink);padding:22px 20px 20px;display:grid;gap:14px;animation:pop-in .32s cubic-bezier(.2,1.4,.4,1) both}
+.panel h2{margin:0;font-size:var(--fs-xl);line-height:1.05;font-weight:800;text-wrap:balance;font-variation-settings:"INFM" 70,"BNCE" 40;padding-right:44px}
+.panel p{margin:0;line-height:1.45;color:var(--ink-soft);font-size:var(--fs-s)}
+.panel h2:focus{outline:none}
+.panel .close{position:absolute;top:12px;right:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row > .btn{flex:1 1 auto}
+.grid-paper{background-color:var(--paper-tint);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:22px 22px}
+.modal > :first-child{margin-top:auto}
+.modal > :last-child{margin-bottom:auto}
+@keyframes pop-in{from{transform:scale(.7) rotate(-3deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes slide-up{from{transform:translateY(110%)}to{transform:none}}
+
+/* ---------- title ---------- */
+#title{display:grid;grid-template-rows:1fr auto;justify-items:center;pointer-events:none;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(18px + env(safe-area-inset-top,0px)) calc(18px + env(safe-area-inset-bottom,0px))}
+.title-sound{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));pointer-events:auto;z-index:2}
+.title-top{display:grid;justify-items:center;align-content:start;gap:10px;padding-top:min(6vh,48px)}
+.logo{margin:0;display:grid;justify-items:center;line-height:.86;font-weight:800;font-size:clamp(52px,15vw,112px);letter-spacing:-.01em;
+  font-variation-settings:"INFM" 100,"BNCE" 70;color:var(--lemon);animation:boil .42s steps(1) infinite}
+.logo span{display:block;
+  text-shadow:3px 0 0 var(--ink),-3px 0 0 var(--ink),0 3px 0 var(--ink),0 -3px 0 var(--ink),2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink),7px 8px 0 var(--ink)}
+.logo .w1{transform:rotate(-4deg) translateX(-6%)}
+.logo .w2{color:var(--bubblegum);font-size:.78em;transform:rotate(2deg) translateX(9%)}
+.logo .w3{color:var(--mint);transform:rotate(-2deg) translateX(-2%)}
+@keyframes boil{0%{filter:url(#boil-a)}33%{filter:url(#boil-b)}66%{filter:url(#boil-c)}}
+.tagline{margin:6px 0 0;font-size:clamp(1rem,4.2vw,1.3rem);font-weight:700;background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--wob-b);
+  padding:.35em .8em;box-shadow:3px 4px 0 var(--ink);transform:rotate(-1.5deg);text-align:center;text-wrap:balance}
+.title-actions{pointer-events:auto;display:grid;gap:12px;width:min(100%,380px)}
+.title-actions .duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.title-actions .duo .btn{padding-inline:.6em}
+.title-foot{display:flex;justify-content:center;gap:10px;margin-top:2px}
+.linkish{background:none;border:0;padding:.4em .6em;font-size:var(--fs-s);font-weight:600;color:var(--ink);text-decoration:underline wavy var(--bubblegum) 1.5px;text-underline-offset:4px;cursor:pointer;min-height:36px}
+.daily-chip{font-size:var(--fs-xs);font-weight:700;background:var(--ink);color:var(--lemon);border-radius:999px;padding:.15em .55em;margin-left:.2em}
+
+/* ---------- top bar (yard / race) ---------- */
+.topbar{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:10px;pointer-events:none;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(10px + env(safe-area-inset-top,0px)) 0}
+.topbar > *{pointer-events:auto}
+.yard-title{font-weight:800;font-size:1.15rem;background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--wob-b);padding:.3em .7em;box-shadow:2px 3px 0 var(--ink);
+  font-variation-settings:"INFM" 80,"BNCE" 40;cursor:pointer;min-height:40px;display:inline-flex;align-items:center;gap:.4em}
+.yard-title small{font-weight:600;font-size:.72em;color:var(--ink-soft)}
+.topbar .spacer{flex:1}
+
+/* ---------- yard toolbar ---------- */
+#yardbar{position:absolute;left:0;right:0;bottom:0;z-index:10;display:flex;justify-content:center;pointer-events:none;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 calc(12px + env(safe-area-inset-bottom,0px))}
+.toolbar{pointer-events:auto;display:flex;gap:6px;background:var(--paper);border:3px solid var(--ink);border-radius:var(--wob-a);box-shadow:4px 5px 0 var(--ink);padding:6px;max-width:100%}
+.tool{display:grid;justify-items:center;gap:2px;min-width:64px;padding:6px 8px 5px;border:0;border-radius:12px;background:transparent;cursor:pointer;font-weight:700;font-size:var(--fs-xs);color:var(--ink)}
+.tool svg{width:26px;height:26px}
+.tool:hover{background:var(--paper-tint)}
+.tool[aria-pressed="true"]{background:var(--lemon);box-shadow:inset 0 0 0 2px var(--ink)}
+.tool.accent{background:var(--mint);box-shadow:inset 0 0 0 2px var(--ink)}
+.hint-bubble{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:9;pointer-events:none;
+  background:var(--ink);color:var(--paper);font-weight:700;font-size:var(--fs-s);padding:.5em .9em;border-radius:14px;max-width:min(88vw,420px);text-align:center;
+  animation:hint-bob 2.4s ease-in-out infinite;transition:opacity .4s}
+.hint-bubble::after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-bottom:0;border-top-color:var(--ink)}
+@keyframes hint-bob{50%{transform:translate(-50%,-5px)}}
+.menu{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:12;display:grid;gap:4px;max-height:calc(100dvh - 104px - env(safe-area-inset-bottom,0px) - env(safe-area-inset-top,0px));overflow-y:auto;
+  background:var(--paper);border:3px solid var(--ink);border-radius:var(--wob-b);box-shadow:4px 5px 0 var(--ink);padding:8px;min-width:210px;animation:pop-in .22s both}
+.menu button{display:flex;align-items:center;gap:.6em;text-align:left;background:none;border:0;border-radius:10px;padding:.65em .7em;font-weight:700;cursor:pointer;min-height:44px}
+.menu button:hover,.menu button:focus-visible{background:var(--paper-tint)}
+.menu svg{width:20px;height:20px}
+
+/* ---------- drawing studio ---------- */
+#draw{display:flex;justify-content:center;overflow-y:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(12px + env(safe-area-inset-top,0px)) calc(14px + env(safe-area-inset-bottom,0px))}
+.studio-inner{width:min(100%,560px);display:grid;gap:12px;align-content:start}
+.studio-head{display:flex;align-items:center;gap:10px}
+.prompt{flex:1;min-width:0;background:var(--paper);border:2.5px solid var(--ink);border-radius:var(--wob-b);box-shadow:3px 4px 0 var(--ink);padding:.45em .8em;
+  font-weight:700;line-height:1.2;transform:rotate(-.6deg)}
+.prompt small{display:block;font-size:var(--fs-xs);font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em}
+.pad-wrap{position:relative;width:300px;height:300px;justify-self:center;border:3px solid var(--ink);border-radius:var(--wob-a);
+  box-shadow:5px 6px 0 var(--ink);overflow:hidden;background:var(--paper)}
+#pad{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.pad-hint{position:absolute;inset:0;display:grid;place-content:center;text-align:center;margin:0;pointer-events:none;color:var(--ink-soft);font-weight:700;font-size:1.1rem;line-height:1.35;transition:opacity .25s}
+.pad-hint b{display:block;font-size:1.5rem;color:var(--ink);font-variation-settings:"INFM" 90,"BNCE" 50}
+.swatches{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.swatch{width:38px;height:38px;border-radius:50%;border:2.5px solid var(--ink);box-shadow:2px 2px 0 var(--ink);cursor:pointer;padding:0;transition:transform .1s}
+.swatch[aria-checked="true"]{transform:scale(1.18) rotate(-8deg);box-shadow:0 0 0 3px var(--paper),0 0 0 5.5px var(--ink)}
+.studio-tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+
+/* ---------- bottom sheet (naming) ---------- */
+.sheet-bottom{display:flex;align-items:flex-end;justify-content:center;pointer-events:none;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 calc(10px + env(safe-area-inset-bottom,0px))}
+.sheet{pointer-events:auto;width:min(100%,520px);background:var(--paper);border:3px solid var(--ink);border-radius:var(--wob-a);box-shadow:5px 6px 0 var(--ink);
+  padding:16px 16px 14px;display:grid;gap:10px;animation:slide-up .4s cubic-bezier(.2,1.2,.4,1) both;max-height:62dvh;overflow-y:auto}
+.sheet h2{margin:0;font-size:1.6rem;font-weight:800;font-variation-settings:"INFM" 90,"BNCE" 50}
+.field{display:grid;grid-template-columns:72px 1fr;align-items:center;gap:10px}
+.field > .lbl,.field > label{font-weight:700;font-size:var(--fs-s)}
+.text-in{width:100%;min-width:0;border:2.5px solid var(--ink);border-radius:12px;padding:.55em .7em;background:var(--paper-tint);font-weight:700;font-size:1.05rem;-webkit-user-select:text;user-select:text}
+.text-in:focus{outline:3px solid var(--lemon);outline-offset:0}
+.inline{display:flex;gap:8px;min-width:0}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{min-width:44px;min-height:40px;border:2.5px solid var(--ink);border-radius:12px;background:var(--paper);font-weight:800;cursor:pointer;padding:0 .7em}
+.seg button[aria-pressed="true"]{background:var(--lemon);box-shadow:2px 2px 0 var(--ink)}
+
+/* ---------- card ---------- */
+.card{position:relative;width:min(100%,360px);border:3px solid var(--ink);border-radius:20px;box-shadow:7px 8px 0 var(--ink);padding:10px;background:var(--card-bg,var(--lemon));
+  display:grid;gap:8px;animation:pop-in .38s cubic-bezier(.2,1.4,.4,1) both}
+.card-inner{background:var(--paper);border:2.5px solid var(--ink);border-radius:14px;padding:9px 11px 10px;display:grid;gap:5px}
+.card-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rarity{font-size:var(--fs-xs);font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:.2em .6em;border:2px solid var(--ink);border-radius:999px;background:var(--paper)}
+.card-no{font-size:var(--fs-xs);font-weight:700;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.portrait{width:100%;aspect-ratio:16/10;border:2.5px solid var(--ink);border-radius:12px;display:block;background:var(--paper-tint)}
+.card h3{margin:2px 0 0;font-size:1.65rem;font-weight:800;line-height:1;font-variation-settings:"INFM" 90,"BNCE" 50;overflow-wrap:anywhere}
+.species{margin:0;font-style:italic;font-weight:500;color:var(--ink-soft);font-size:var(--fs-s)}
+.stats{display:grid;grid-template-columns:auto 1fr auto;gap:4px 8px;align-items:center;margin:4px 0 2px;font-size:var(--fs-xs);font-weight:800;letter-spacing:.06em}
+.stats .bar{height:10px;border:2px solid var(--ink);border-radius:6px;background:var(--paper-tint);overflow:hidden}
+.stats .bar i{display:block;height:100%;background:var(--ink)}
+.stats .num{font-variant-numeric:tabular-nums;min-width:1.4em;text-align:right}
+.bio{list-style:none;margin:0;padding:0;display:grid;gap:2px;font-size:.84rem;line-height:1.28}
+.bio b{font-weight:800}
+.card-foot{margin:2px 0 0;font-size:var(--fs-xs);color:var(--ink-soft);display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.card-actions{display:grid;gap:10px;width:min(100%,360px)}
+.act4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.act{display:grid;justify-items:center;gap:3px;padding:8px 2px 7px;border:2.5px solid var(--ink);border-radius:14px;background:var(--paper);box-shadow:2px 3px 0 var(--ink);
+  font-weight:800;font-size:var(--fs-xs);cursor:pointer;transition:transform .08s,box-shadow .08s;min-height:56px}
+.act svg{width:24px;height:24px}
+.act:active{transform:translate(2px,2px);box-shadow:0 1px 0 var(--ink)}
+.act:focus-visible{outline:3px dashed var(--bubblegum);outline-offset:3px}
+.act.talk{background:var(--mint)}.act.race{background:var(--blue)}.act.send{background:var(--lemon)}
+.row2{display:flex;justify-content:space-between;gap:10px}
+.row2 .btn{flex:0 1 auto}
+.row2 .btn.primary{flex:1 1 auto}
+.confirm-row{grid-column:1 / -1;display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--paper);border:2.5px dashed var(--ink);border-radius:14px;padding:8px 10px;font-weight:700;font-size:var(--fs-s)}
+
+/* ---------- share / adopt / misc ---------- */
+.codebox{width:100%;min-height:110px;resize:none;border:2.5px solid var(--ink);border-radius:12px;padding:.6em;background:var(--paper-tint);font:600 .78rem/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+  word-break:break-all;-webkit-user-select:text;user-select:text;color:var(--ink)}
+.result-share{white-space:pre-wrap;font:600 .9rem/1.45 var(--font-hand);background:var(--paper-tint);border:2px dashed var(--ink);border-radius:12px;padding:.7em .8em;margin:0;-webkit-user-select:text;user-select:text}
+.imgsave{width:100%;border:2.5px solid var(--ink);border-radius:12px;-webkit-user-select:auto;user-select:auto;-webkit-touch-callout:default}
+
+/* ---------- race menu ---------- */
+.modes{display:grid;gap:10px}
+.mode{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;text-align:left;border:2.5px solid var(--ink);border-radius:var(--wob-b);background:var(--paper);padding:12px 14px;cursor:pointer;
+  box-shadow:3px 4px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.mode:active{transform:translate(2px,3px);box-shadow:1px 1px 0 var(--ink)}
+.mode .ico{grid-row:span 2;width:46px;height:46px;border:2.5px solid var(--ink);border-radius:50%;display:grid;place-items:center;background:var(--lemon)}
+.mode .ico svg{width:26px;height:26px}
+.mode b{font-size:1.1rem}
+.mode span{font-size:var(--fs-s);color:var(--ink-soft);line-height:1.3}
+.mode.daily .ico{background:var(--mint)}
+.mode.party .ico{background:var(--bubblegum)}
+.picker{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.pick{flex:none;width:96px;display:grid;gap:4px;justify-items:center;border:2.5px solid var(--ink);border-radius:14px;background:var(--paper);padding:6px 4px;cursor:pointer;scroll-snap-align:start;font-weight:700;font-size:var(--fs-xs)}
+.pick canvas{width:80px;height:70px}
+.pick span{max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick[aria-pressed="true"]{background:var(--lemon);box-shadow:2px 3px 0 var(--ink)}
+.pick .tag{font-size:.68rem;background:var(--ink);color:var(--paper);border-radius:999px;padding:0 .5em}
+.players{display:grid;gap:8px}
+.player-row{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px}
+.pbadge{font-weight:800;border:2.5px solid var(--ink);border-radius:10px;padding:.25em .5em;min-width:3.3em;text-align:center}
+.small-print{font-size:var(--fs-xs)!important}
+
+/* ---------- race HUD ---------- */
+#hud{position:absolute;top:0;left:0;right:0;z-index:10;pointer-events:none;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(10px + env(safe-area-inset-top,0px)) 0}
+#hud > *{pointer-events:auto}
+.hud-chip{font-weight:800;background:var(--paper);border:2.5px solid var(--ink);border-radius:12px;padding:.25em .6em;box-shadow:2px 3px 0 var(--ink);font-variant-numeric:tabular-nums;font-size:1.15rem;min-height:40px;display:inline-flex;align-items:center}
+
+/* ---------- results ---------- */
+.podium-line{display:grid;grid-template-columns:2.2em 1fr auto;gap:8px;align-items:center;padding:.35em .2em;border-bottom:2px dashed var(--grid);font-weight:700}
+.podium-line:last-child{border-bottom:0}
+.podium-line .place{font-weight:800;font-size:1.15rem}
+.podium-line .t{font-variant-numeric:tabular-nums}
+.podium-line.me{background:var(--lemon);border-radius:10px;border-bottom-color:transparent}
+.big-time{font-size:2.6rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;font-variation-settings:"INFM" 80,"BNCE" 30}
+.pb{display:inline-block;font-size:var(--fs-xs);font-weight:800;background:var(--bubblegum);border:2px solid var(--ink);border-radius:999px;padding:.1em .6em;transform:rotate(-4deg);margin-left:.4em;vertical-align:middle}
+
+/* ---------- chat ---------- */
+.chatlog{display:grid;gap:8px;max-height:38dvh;overflow-y:auto;padding:4px 2px}
+.msg{max-width:85%;padding:.5em .75em;border:2px solid var(--ink);border-radius:14px;line-height:1.35;font-size:var(--fs-s);-webkit-user-select:text;user-select:text;overflow-wrap:anywhere}
+.msg.me{justify-self:end;background:var(--blue);border-bottom-right-radius:4px}
+.msg.them{justify-self:start;background:var(--paper-tint);border-bottom-left-radius:4px}
+.msg.them b{display:block;font-size:var(--fs-xs)}
+
+/* ---------- toast ---------- */
+#toast{position:absolute;left:50%;top:calc(66px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:40;background:var(--ink);color:var(--paper);font-weight:700;padding:.6em 1em;border-radius:14px;
+  max-width:min(90vw,440px);text-align:center;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(4px)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.noscript{position:absolute;inset:0;display:grid;place-items:center;background:var(--sky);font-weight:700;padding:24px;text-align:center}
+
+@media (max-height:640px){
+  .title-top{padding-top:0;gap:6px}
+  .logo{font-size:clamp(44px,11vh,84px)}
+  .tagline{display:none}
+}
+@media (max-height:700px){
+  .sheet{gap:7px;padding:12px 14px 12px}
+  .sheet h2{font-size:1.3rem}
+  .seg button{min-height:36px}
+  .text-in{padding:.42em .6em}
+  .sheet .btn.big{padding:.7em 1.2em}
+}
+@media (max-height:520px) and (min-width:640px){
+  .sheet-bottom{justify-content:flex-end;align-items:center;padding-block:8px}
+  .sheet{width:min(54%,470px);max-height:calc(100dvh - 16px)}
+  .studio-inner{width:min(100%,880px);grid-template-columns:auto 1fr;align-items:start;column-gap:20px}
+  .studio-head{grid-column:1 / -1}
+  .pad-wrap{grid-row:2 / span 4}
+}
+@media (max-height:520px){
+  .sheet{max-height:88dvh;gap:6px;padding:12px 14px}
+  .sheet h2{font-size:1.25rem}
+  .field{grid-template-columns:64px 1fr}
+  .text-in{padding:.4em .6em}
+}
+@media (max-width:380px){
+  .swatch{width:32px;height:32px}
+  .swatches{gap:7px}
+}
+@media (prefers-reduced-motion:reduce){
+  .logo{animation:none}
+  .hint-bubble{animation:none}
+  .panel,.card,.sheet,.menu{animation:none}
+}
+</style>
+<!--HEAD-END-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="boil-a"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="2"/><feDisplacementMap in="SourceGraphic" scale="4.5"/></filter>
+  <filter id="boil-b"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="4.5"/></filter>
+  <filter id="boil-c"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="13"/><feDisplacementMap in="SourceGraphic" scale="4.5"/></filter>
+</svg>
+<div id="app">
+  <canvas id="world" aria-label="The yard, where your guys live"></canvas>
+
+  <!-- top bar for yard -->
+  <div class="topbar" id="yardtop" hidden>
+    <button class="yard-title" id="yt-home" aria-label="Back to title screen"><span>Weird Little Guys</span><small id="yt-count"></small></button>
+    <span class="spacer"></span>
+    <button class="iconbtn" id="yt-sound" aria-label="Sound" data-icon="sound"></button>
+  </div>
+
+  <!-- title -->
+  <section id="title" class="screen" aria-label="Title">
+    <button class="iconbtn title-sound" id="t-sound" aria-label="Sound" data-icon="sound"></button>
+    <div class="title-top">
+      <h1 class="logo" aria-label="Weird Little Guys"><span class="w1">Weird</span><span class="w2">Little</span><span class="w3">Guys</span></h1>
+      <p class="tagline">Draw one. It comes alive. Race your friends.</p>
+    </div>
+    <div class="title-actions">
+      <button class="btn big primary" id="t-draw" data-icon="pencil">Draw a guy</button>
+      <div class="duo">
+        <button class="btn go" id="t-dash" data-icon="flag">Daily Dash <span class="daily-chip" id="t-daynum">#1</span></button>
+        <button class="btn hot" id="t-party" data-icon="party">Party race</button>
+      </div>
+      <button class="btn" id="t-yard" data-icon="house">Visit the yard</button>
+      <div class="title-foot">
+        <button class="linkish" id="t-adopt">Got a code from a friend?</button>
+        <button class="linkish" id="t-about">How it works</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- yard toolbar -->
+  <nav id="yardbar" hidden aria-label="Yard tools">
+    <div class="toolbar">
+      <button class="tool accent" id="yb-draw" data-icon="pencil">New guy</button>
+      <button class="tool" id="yb-snack" data-icon="donut" aria-pressed="false">Snacks</button>
+      <button class="tool" id="yb-race" data-icon="flag">Race</button>
+      <button class="tool" id="yb-more" data-icon="menu" aria-expanded="false" aria-controls="yard-menu">More</button>
+    </div>
+  </nav>
+  <div class="menu" id="yard-menu" hidden role="menu">
+    <button role="menuitem" id="ym-adopt" data-icon="mail">Adopt a friend's guy</button>
+    <button role="menuitem" id="ym-party" data-icon="party">Party race</button>
+    <button role="menuitem" id="ym-photo" data-icon="camera">Group photo</button>
+    <button role="menuitem" id="ym-dance" data-icon="note">Dance party</button>
+    <button role="menuitem" id="ym-about" data-icon="info">How it works</button>
+    <button role="menuitem" id="ym-home" data-icon="house">Title screen</button>
+  </div>
+  <div class="hint-bubble" id="yard-hint" hidden></div>
+
+  <!-- drawing studio -->
+  <section id="draw" class="screen grid-paper" hidden aria-label="Drawing studio">
+    <div class="studio-inner">
+      <div class="studio-head">
+        <button class="iconbtn" id="draw-back" aria-label="Close the drawing studio" data-icon="close"></button>
+        <div class="prompt" aria-live="polite"><small>Need an idea? Draw</small><span id="prompt-text">a potato with ambition</span></div>
+        <button class="iconbtn" id="prompt-roll" aria-label="Show another idea" data-icon="dice"></button>
+      </div>
+      <div class="pad-wrap" id="pad-wrap">
+        <canvas id="pad" aria-label="Drawing pad. Draw your guy's body with your finger or mouse."></canvas>
+        <p class="pad-hint" id="pad-hint"><b>Draw a body. Any shape.</b>Close the outline and it fills with color.<br>Eyes, legs and a soul come free.</p>
+      </div>
+      <div class="swatches" id="swatches" role="radiogroup" aria-label="Body color"></div>
+      <div class="studio-tools">
+        <button class="btn small" id="draw-undo" data-icon="undo">Undo</button>
+        <button class="btn small" id="draw-clear" data-icon="trash">Clear</button>
+        <button class="btn small" id="draw-mirror" data-icon="mirror" aria-pressed="false">Mirror</button>
+        <button class="btn small blue" id="draw-surprise" data-icon="dice">Surprise me</button>
+      </div>
+      <button class="btn big primary" id="draw-done" disabled data-icon="spark">Bring it to life</button>
+    </div>
+  </section>
+
+  <!-- naming sheet -->
+  <section id="namer" class="screen sheet-bottom" hidden aria-label="Name your guy">
+    <form class="sheet" id="nm-form" autocomplete="off">
+      <h2 id="nm-title">It's alive!</h2>
+      <div class="field"><label for="nm-name">Name</label><div class="inline"><input class="text-in" id="nm-name" maxlength="18" required><button type="button" class="iconbtn" id="nm-roll" aria-label="Suggest another name" data-icon="dice"></button></div></div>
+      <div class="field"><label for="nm-by">Made by</label><input class="text-in" id="nm-by" maxlength="16" placeholder="your name (optional)"></div>
+      <div class="field"><span class="lbl" id="nm-legs-l">Legs</span><div class="seg" id="nm-legs" role="group" aria-labelledby="nm-legs-l"></div></div>
+      <div class="field"><span class="lbl" id="nm-arms-l">Arms</span><div class="seg" id="nm-arms" role="group" aria-labelledby="nm-arms-l"></div></div>
+      <div class="field"><span class="lbl">Face</span><div class="inline"><button type="button" class="btn small" id="nm-face" data-icon="dice">Shuffle face</button></div></div>
+      <button type="submit" class="btn big primary" id="nm-done">Welcome to the yard</button>
+    </form>
+  </section>
+
+  <!-- card -->
+  <section id="card" class="screen modal" hidden aria-label="Guy card">
+    <div class="card" id="card-el">
+      <div class="card-inner">
+        <div class="card-top"><span class="rarity" id="cd-rarity">Common</span><span class="card-no" id="cd-no">No. 0001</span></div>
+        <canvas class="portrait" id="cd-portrait" aria-hidden="true"></canvas>
+        <h3 id="cd-name">Gerald</h3>
+        <p class="species" id="cd-species"></p>
+        <div class="stats" id="cd-stats"></div>
+        <ul class="bio" id="cd-bio"></ul>
+        <p class="card-foot"><span id="cd-born"></span><span id="cd-by"></span></p>
+      </div>
+    </div>
+    <div class="card-actions" id="cd-actions">
+      <div class="act4">
+        <button class="act talk" id="cd-talk" data-icon="chat">Talk</button>
+        <button class="act race" id="cd-race" data-icon="flag">Race</button>
+        <button class="act send" id="cd-share" data-icon="mail">Send</button>
+        <button class="act" id="cd-save" data-icon="save">Save</button>
+      </div>
+      <div class="row2">
+        <button class="btn ghost small" id="cd-release" data-icon="door">Release</button>
+        <button class="btn primary" id="cd-close" data-icon="check">Done</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- generic modal (share / adopt / about / results / race menu / chat) -->
+  <section id="modal" class="screen modal" hidden>
+    <div class="panel" id="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-h"></div>
+  </section>
+
+  <!-- race HUD -->
+  <div id="hud" hidden>
+    <button class="iconbtn" id="hud-back" aria-label="Leave race" data-icon="close"></button>
+    <span class="hud-chip" id="hud-time" aria-live="off">0.00</span>
+    <button class="iconbtn" id="hud-sound" aria-label="Sound" data-icon="sound"></button>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+</div>
+<noscript><div class="noscript">Weird Little Guys needs JavaScript to come alive.</div></noscript>
+<script>
+/*__JS__*/
+</script>

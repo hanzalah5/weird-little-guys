@@ -1,0 +1,15 @@
+{
+  "name": "weird-little-guys",
+  "version": "1.0.0",
+  "description": "Draw a weird little guy. It comes alive. Race your friends.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs dev guys.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

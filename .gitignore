@@ -1,0 +1,6 @@
+# build output (index.html at the root is committed on purpose so GitHub Pages can serve it)
+dist/
+
+node_modules/
+.DS_Store
+*.zip
